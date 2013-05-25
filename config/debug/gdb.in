@@ -1,0 +1,173 @@
+# GDB menu
+
+config DEBUG_gdb
+    help
+      Enable gdb for the target
+
+config GDB_CROSS
+    bool
+    prompt "Cross-gdb"
+    default y
+    select GDB_GDBSERVER if ! BARE_METAL
+    help
+      Build and install a cross-gdb for the target, to run on host.
+
+config GDB_CROSS_STATIC
+    bool
+    prompt "Build a static cross gdb"
+    default n
+    depends on GDB_CROSS
+    help
+      A static cross gdb can be usefull if you debug on a machine that is
+      not the one that is used to compile the toolchain.
+      
+      That way, you can share the cross-gdb without installing a toolchain
+      on every machine that will be used to debug target programs.
+
+config GDB_CROSS_INSIGHT
+    bool
+    prompt "Use Insight instead (EXPERIMENTAL)"
+    default n
+    depends on GDB_CROSS
+    depends on EXPERIMENTAL
+    help
+      If you say 'Y' here, then Insight will be used to build the cross
+      debugger, instead of the plain gdb.
+      
+      Insight is gdb plus a TCL/TK GUI: http://sourceware.org/insight/
+
+config GDB_NATIVE
+    bool
+    prompt "Native gdb"
+    default n
+    depends on ! BARE_METAL
+    help
+      Build and install a native gdb for the target, to run on the target.
+
+config GDB_NATIVE_STATIC
+    bool
+    prompt "Build a static native gdb"
+    default n
+    depends on GDB_NATIVE
+    help
+      In case you have trouble with dynamic loading of shared libraries,
+      you will find that a static gdb comes in handy.
+
+config GDB_NATIVE_USE_GMP_MPFR
+    bool
+    prompt "Use GMP and MPFR"
+    default n
+    depends on GDB_NATIVE
+    select GMP_MPFR
+    select COMP_LIBS_TARGET
+    help
+      gdb can make use of the GMP and MPFR libraries.
+      
+      While the cross-gdb (above) can use the libraries compiled for the
+      host, the native gdb needs the libraries for the target (where it will
+      eventually run).
+      
+      Setting this option will force building the GMP and MPFR libraries for
+      the target, and configure the native gdb to use them.
+
+config GDB_GDBSERVER
+    bool
+    prompt "gdbserver"
+    default n
+    depends on ! BARE_METAL
+    help
+      Build and install a gdbserver for the target, to run on the target.
+
+config GDB_GDBSERVER_STATIC
+    bool
+    prompt "Build a static gdbserver"
+    default y
+    depends on GDB_GDBSERVER
+    help
+      In case you have trouble with dynamic loading of shared libraries,
+      you will find that a static gdbserver comes in handy.
+
+if BARE_METAL
+comment "In bare-metal, you'll need to   "
+comment "provide your own gdbserver stub."
+endif # BARE_METAL
+
+choice
+    bool
+    prompt "gdb version"
+    depends on GDB_CROSS || GDB_NATIVE || GDB_GDBSERVER
+# Don't remove next line
+# CT_INSERT_VERSION_BELOW
+
+config GDB_V_6_8
+    bool
+    prompt "6.8"
+
+config GDB_V_6_7_1
+    bool
+    prompt "6.7.1 (EXPERIMENTAL)"
+    depends on EXPERIMENTAL
+
+config GDB_V_6_7
+    bool
+    prompt "6.7 (EXPERIMENTAL)"
+    depends on EXPERIMENTAL
+
+config GDB_V_6_6
+    bool
+    prompt "6.6"
+
+config GDB_V_6_5
+    bool
+    prompt "6.5 (OBSOLETE)"
+    depends on OBSOLETE
+
+config GDB_V_6_4
+    bool
+    prompt "6.4 (OBSOLETE)"
+    depends on OBSOLETE
+
+config GDB_V_snapshot
+    bool
+    prompt "snapshot (EXPERIMENTAL)"
+    depends on EXPERIMENTAL
+    depends on ! GDB_CROSS_INSIGHT
+
+endchoice
+
+config GDB_VERSION
+    string
+# Don't remove next line
+# CT_INSERT_VERSION_STRING_BELOW
+    default "6.8" if GDB_V_6_8
+    default "6.7.1" if GDB_V_6_7_1
+    default "6.7" if GDB_V_6_7
+    default "6.6" if GDB_V_6_6
+    default "6.5" if GDB_V_6_5
+    default "6.4" if GDB_V_6_4
+    default "snapshot" if GDB_V_snapshot
+
+if GDB_NATIVE
+
+comment "Native gdb needs a native ncurses library"
+
+choice
+    bool
+    prompt "ncurses version"
+
+config NCURSES_V_5_7
+    bool
+    prompt "5.7"
+
+config NCURSES_V_5_6
+    bool
+    prompt "5.6"
+
+endchoice
+
+config NCURSES_VERSION
+    string
+    default "5.7" if NCURSES_V_5_7
+    default "5.6" if NCURSES_V_5_6
+
+endif # GDB_NATIVE --> ncurses
