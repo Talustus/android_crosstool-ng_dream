@@ -6,7 +6,7 @@ _ct-ng () {
     cur=$(_get_cword)
     prev=${COMP_WORDS[COMP_CWORD-1]}
 
-    samples=$(${COMP_WORDS[0]} list-samples 2>/dev/null)
+    samples=$( "${COMP_WORDS[0]}" list-samples-short 2>/dev/null )
     show_samples=$(echo "${samples}" |sed -r -e 's/(^| )/\1show-/g;')
     build_samples=$(echo "${samples}" |sed -r -e 's/(^| )/\1build-/g;')
 
@@ -14,13 +14,14 @@ _ct-ng () {
     start_steps=$(echo "${steps}" |sed -r -e 's/($| )/\1+/;')
     stop_steps=$(echo "${steps}" |sed -r -e 's/(^| )/+\1/;')
 
-    actions='help menuconfig oldconfig saveconfig
+    actions='help menuconfig oldconfig saveconfig extractconfig
              build build. build-all build-all.
-             list-samples list-steps show-tuple
-             clean distclean wiki-samples updatetools
+             wiki-samples list-samples list-samples-short list-steps
+             show-tuple show-all show-config
+             clean distclean updatetools
              tarball version'
 
-    vars="RESTART= STOP="
+    vars="RESTART= STOP= PREFIX= V="
 
     ct_ng_opts="${samples} ${show_samples} ${build_samples}
                 ${steps} ${start_steps} ${stop_steps}

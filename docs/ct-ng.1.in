@@ -9,11 +9,11 @@
 ."
 ."
 .SH NAME
-ct-ng, crosstool-NG \- Build cross-toolchains
+@@CT_PROG_NAME@@, crosstool-NG \- Build cross-toolchains
 ."
 ."
 .SH SYNOPSIS
-.B ct-ng ACTION
+.B @@CT_PROG_NAME@@ ACTION
 ."
 ."
 .SH DESCRIPTION
@@ -27,7 +27,7 @@ accordingly to the targeted processor.
 ."
 .SH ACTIONS
 Here are the most commonly used actions. For other actions, please see
-.I @@CT_DOCDIR@@/overview.txt
+.I "@@CT_DOCDIR@@/0 - Table of content.txt"
 .TP
 .B help
 Prints a little help text.
@@ -56,7 +56,7 @@ If that was not clear:
 .I `pwd`/samples/${CT_TARGET}/
 
 Samples can be later recalled by calling
-.B ct-ng
+.B @@CT_PROG_NAME@@
 with the target tuple they represent.
 ."
 .TP
@@ -99,7 +99,7 @@ to canonicalise the machines' name (host, build and target machines).
 Builds a tarball of the generated toolchain, also saving the scripts from
 .B crosstool-NG
 that are needed to rebuild the target, and also saving the tarballs of the
-componnents that were used.
+components that were used.
 ."
 .SH ENVIRONMENT
 .TP
@@ -107,12 +107,12 @@ componnents that were used.
 Respectively stops and restarts the build just before this step. To restart a
 step, a previous build should have run at least to that step, or further.
 
-The list of steps is vailable with the action
+The list of steps is viewable with the action
 .BR list-steps .
 ."
 .SH EXIT VALUE
 The
-.B ct-ng
+.B @@CT_PROG_NAME@@
 frontend is in fact a
 .BR make (1)
 script. See the man page for
@@ -152,7 +152,7 @@ for a list of contributors.
 ."
 .SH SEE ALSO
 You can find more in-depth documentation in
-.IR @@CT_DOCDIR@@/overview.txt .
+.IR "@@CT_DOCDIR@@/0 - Table of content.txt" .
 
 Please have a look at the
 .URL "http://www.kegel.com/crosstool" "original crosstool" " by Daniel KEGEL"

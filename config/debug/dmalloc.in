@@ -1,7 +1,9 @@
 # dmalloc debug facility
 
-config DEBUG_dmalloc
-    bool
+## depends on ! BACKEND
+##
+## help dmalloc helps tracking memory allocation mis-usage
+## help such as double-free, use-after-free...
 
 choice
     bool
@@ -13,11 +15,6 @@ config DMALLOC_V_5_5_2
     bool
     prompt "5.5.2"
 
-config DMALLOC_V_5_4_3
-    bool
-    prompt "5.4.3 (OBSOLETE)"
-    depends on OBSOLETE
-
 endchoice
 
 config DMALLOC_VERSION
@@ -25,4 +22,3 @@ config DMALLOC_VERSION
 # Don't remove next line
 # CT_INSERT_VERSION_STRING_BELOW
     default "5.5.2" if DMALLOC_V_5_5_2
-    default "5.4.3" if DMALLOC_V_5_4_3

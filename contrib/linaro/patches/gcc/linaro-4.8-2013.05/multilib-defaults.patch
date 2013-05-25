@@ -1,0 +1,11 @@
+--- gcc-linaro-4.8-2013.04/gcc/config/arm/linux-elf.h.mld~	2013-01-10 21:38:27.000000000 +0100
++++ gcc-linaro-4.8-2013.04/gcc/config/arm/linux-elf.h	2013-04-17 22:37:46.893585367 +0200
+@@ -46,7 +46,7 @@
+ 
+ #undef  MULTILIB_DEFAULTS
+ #define MULTILIB_DEFAULTS \
+-	{ "marm", "mlittle-endian", "mfloat-abi=hard", "mno-thumb-interwork" }
++	{ "mthumb", "mlittle-endian", "mfloat-abi=hard", "mno-thumb-interwork" }
+ 
+ /* Now we define the strings used to build the spec file.  */
+ #undef  LIB_SPEC

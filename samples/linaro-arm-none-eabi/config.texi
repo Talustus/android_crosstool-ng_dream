@@ -1,0 +1,7 @@
+@set TARGET arm-none-eabi
+@set TRIPLET arm-none-eabi
+@set ARCH Cortex-M
+@set CPU Cortex-M3
+@set ABI 'softfp'
+@set MODE Thumb-2
+@set LIBC_VERSION NEWLIB 1.19.0 

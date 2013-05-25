@@ -2,29 +2,14 @@
 
 choice
     bool
-    prompt "CLooG/ppl version"
+    prompt "CLooG version"
 # Don't remove next line
 # CT_INSERT_VERSION_BELOW
 
-config CLOOG_V_0_15_7
+config CLOOG_V_0_18_0
     bool
-    prompt "0.15.7"
-
-config CLOOG_V_0_15_6
-    bool
-    prompt "0.15.6"
-
-config CLOOG_V_0_15_5
-    bool
-    prompt "0.15.5"
-
-config CLOOG_V_0_15_4
-    bool
-    prompt "0.15.4"
-
-config CLOOG_V_0_15_3
-    bool
-    prompt "0.15.3"
+    prompt "0.18.0 (EXPERIMENTAL)"
+    depends on EXPERIMENTAL
 
 endchoice
 
@@ -32,8 +17,4 @@ config CLOOG_VERSION
     string
 # Don't remove next line
 # CT_INSERT_VERSION_STRING_BELOW
-    default "0.15.7" if CLOOG_V_0_15_7
-    default "0.15.6" if CLOOG_V_0_15_6
-    default "0.15.5" if CLOOG_V_0_15_5
-    default "0.15.4" if CLOOG_V_0_15_4
-    default "0.15.3" if CLOOG_V_0_15_3
+    default "0.18.0" if CLOOG_V_0_18_0

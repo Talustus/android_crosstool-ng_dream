@@ -5,10 +5,9 @@
 do_gmp_get() { :; }
 do_gmp_extract() { :; }
 do_gmp() { :; }
-do_gmp_target() { :; }
 
 # Overide functions depending on configuration
-if [ "${CT_GMP_MPFR}" = "y" ]; then
+if [ "${CT_GMP}" = "y" ]; then
 
 # Download GMP
 do_gmp_get() {
@@ -18,11 +17,10 @@ do_gmp_get() {
 # Extract GMP
 do_gmp_extract() {
     CT_Extract "gmp-${CT_GMP_VERSION}"
-    CT_Patch "gmp-${CT_GMP_VERSION}"
+    CT_Patch "gmp" "${CT_GMP_VERSION}"
 }
 
 do_gmp() {
-
     mkdir -p "${CT_BUILD_DIR}/build-gmp"
     cd "${CT_BUILD_DIR}/build-gmp"
 
@@ -30,24 +28,24 @@ do_gmp() {
 
     CT_DoLog EXTRA "Configuring GMP"
 
+    CT_DoExecLog CFG                                \
     CFLAGS="${CT_CFLAGS_FOR_HOST} -fexceptions"     \
-    CT_DoExecLog ALL                                \
     "${CT_SRC_DIR}/gmp-${CT_GMP_VERSION}/configure" \
         --build=${CT_BUILD}                         \
         --host=${CT_HOST}                           \
-        --prefix="${CT_PREFIX_DIR}"                 \
-        --enable-shared                             \
-        --disable-static                            \
+        --prefix="${CT_COMPLIBS_DIR}"               \
         --enable-fft                                \
         --enable-mpbsd                              \
-        --enable-cxx
+        --enable-cxx                                \
+        --disable-shared                            \
+        --enable-static
 
     CT_DoLog EXTRA "Building GMP"
-    CT_DoExecLog ALL make ${PARALLELMFLAGS}
+    CT_DoExecLog ALL make ${JOBSFLAGS}
 
-    if [ "${CT_COMP_LIBS_CHECK}" = "y" ]; then
+    if [ "${CT_COMPLIBS_CHECK}" = "y" ]; then
         CT_DoLog EXTRA "Checking GMP"
-        CT_DoExecLog ALL make ${PARALLELMFLAGS} -s check
+        CT_DoExecLog ALL make ${JOBSFLAGS} -s check
     fi
 
     CT_DoLog EXTRA "Installing GMP"
@@ -56,37 +54,4 @@ do_gmp() {
     CT_EndStep
 }
 
-if [ "${CT_COMP_LIBS_TARGET}" = "y" ]; then
-
-do_gmp_target() {
-    mkdir -p "${CT_BUILD_DIR}/build-gmp-target"
-    cd "${CT_BUILD_DIR}/build-gmp-target"
-
-    CT_DoStep INFO "Installing GMP for the target"
-
-    CT_DoLog EXTRA "Configuring GMP"
-    CFLAGS="${CT_CFLAGS_FOR_TARGET}"                \
-    CT_DoExecLog ALL                                \
-    "${CT_SRC_DIR}/gmp-${CT_GMP_VERSION}/configure" \
-        --build=${CT_BUILD}                         \
-        --host=${CT_TARGET}                         \
-        --prefix=/usr                               \
-        --disable-shared                            \
-        --enable-static                             \
-        --enable-fft                                \
-        --enable-mpbsd                              \
-
-    CT_DoLog EXTRA "Building GMP"
-    CT_DoExecLog ALL make ${PARALLELMFLAGS}
-
-    # Not possible to check MPFR while X-compiling
-
-    CT_DoLog EXTRA "Installing GMP"
-    CT_DoExecLog ALL make DESTDIR="${CT_SYSROOT_DIR}" install
-
-    CT_EndStep
-}
-
-fi # CT_GMP_MPFR_TARGET == y
-
-fi # CT_GMP_MPFR == y
+fi # CT_GMP

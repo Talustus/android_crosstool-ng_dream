@@ -1,30 +1,31 @@
 # This file contains the common configuration options
 # that apply to both glibc and eglibc.
 
-if LIBC_glibc || LIBC_eglibc
-
 # Some architectures require the ports addon. List them one by one here:
 # This list must be carefully in sync with the architectures names
 # we can find in config/arch/*
-
-config ARCH_arm
+config LIBC_GLIBC_MAY_FORCE_PORTS
+    bool
+    default y if ARCH_arm
+    default y if ARCH_mips
     select LIBC_GLIBC_USE_PORTS
 
-config ARCH_mips
-    select LIBC_GLIBC_USE_PORTS
+# Force using the BFD linker during the toolchain build
+config LIBC_glibc_familly
+    bool
+    default y
+    select BINUTILS_FORCE_LD_BFD
 
-# End of arch-specific ports auto-select
-
-comment "glibc/eglibc common options"
-
-config LIBC_GLIBC_EXTRA_CONFIG
+config LIBC_GLIBC_EXTRA_CONFIG_ARRAY
     string
     prompt "extra config"
     default ""
     help
       Extra flags to pass onto ./configure when configuring.
 
-      Eg.: --enable-static-nss
+      You can enter multiple arguments here, and arguments can contain spaces
+      if they are properly quoted (or escaped, but prefer quotes). Eg.:
+          --with-foo="1st arg with 4 spaces" --with-bar=2nd-arg-without-space
 
 config LIBC_GLIBC_CONFIGPARMS
     string
@@ -38,8 +39,8 @@ config LIBC_GLIBC_CONFIGPARMS
       
       Unless you are building a toolchain for sh3/4, you should leave that empty.
       
-      Note: this is awkward, and doesn't work well if you need more than one
-            line in configparms
+      Note: If you need to pass more than one value, separate them with
+            '\n'. Eg.:  var1=val1\nvar2=val2
 
 config LIBC_GLIBC_EXTRA_CFLAGS
     string
@@ -58,10 +59,63 @@ config LIBC_EXTRA_CC_ARGS
       Seldom used, except for sparc64 which seems to need the flag -64
       to be passed onto gcc.
 
+config LIBC_ENABLE_FORTIFIED_BUILD
+    bool
+    prompt "Enable fortified build (EXPERIMENTAL)"
+    depends on EXPERIMENTAL
+    help
+      If you say 'y' here, then glibc will be using fortified versions
+      of functions with format arguments (eg. vsyslog, printf...), and
+      do a sanity check on the format at runtime, to avoid some of the
+      common format string attacks.
+      
+      This is currently not supported, and will most probably result in
+      a broken build, with an error message like:
+        ../misc/syslog.c: In function '__vsyslog_chk':
+        ../misc/syslog.c:123: sorry, unimplemented: inlining failed in
+        call to 'syslog': function body not available
+      
+      If you are brave enough and want to debug the issue, then say 'y'
+      here. Otherwise, be still and say 'n' (the default). ;-)
+
+
+config LIBC_DISABLE_VERSIONING
+    bool
+    prompt "Disable symbols versioning"
+    help
+      Do not include versioning information in the library objects.
+
+config LIBC_OLDEST_ABI
+    string
+    prompt "Oldest supported ABI"
+    default ""
+    help
+      Set the oldest ABI supported by the C library.
+      
+      Setting this option, for example, to 2.2 will provide ABI support
+      back to (e)glibc-2.2.
+
+      If this option is not set, (e)glibc will choose for you.
+
+config LIBC_GLIBC_FORCE_UNWIND
+    bool
+    prompt "Force unwind support (READ HELP!)"
+    default y
+    help
+      If your toolchain fails building while building the C library
+      start files, or the complete C library, with a message like:
+        configure: error: forced unwind support is required
+      
+      then you may try changing this option. Otherwise, leave it to
+      the default 'y'.
+      
+      The issue seems to be related to building NPTL on old versions
+      of glibc (and possibly eglibc as well) on some architectures
+      (seen on s390, s390x and x86_64).
+
 config LIBC_GLIBC_USE_PORTS
     bool
     prompt "Use the ports addon"
-    default n
     help
       The ports addon contains some architecture ports that are not available
       in the official distribution.
@@ -79,20 +133,38 @@ config LIBC_ADDONS_LIST
       Extra addons to include. Space separated list.
 
       You need to specify neither linuxthreads nor nptl, as they are added
-      automagically for you depending on the threading model you choosed
+      automagically for you depending on the threading model you chose
       earlier.
 
       Eg.: crypt        (for very old libces)
 
-if LIBC_GLIBC_2_8_or_later && ( LIBC_GLIBC_USE_PORTS || ( LIBC_ADDONS_LIST != "" ) )
-comment "WARNING!!!"
-comment "For glibc >= 2.8, addons are only available via a CVS checkout."
-comment "Be sure to review the associated options, above."
+if LIBC_GLIBC_USE_PORTS || ( LIBC_ADDONS_LIST != "" )
+comment "WARNING !!!                                            "
+comment "|  For glibc >= 2.8, it can happen that the tarballs    "
+comment "|  for the addons are not available for download.       "
+comment "|  If that happens, bad luck... Try a previous version  "
+comment "|  or try again later... :-(                            "
 endif
+
+config LIBC_LOCALES
+    bool
+    prompt "Build and install locales"
+    help
+      Whether to build and install the libc locale files for the target,
+      which is required in order to support internationalization.
+
+if LIBC_glibc && LIBC_LOCALES
+comment "WARNING!                                                     "
+comment "|  The built locales will be usable if and only if the build  "
+comment "|  machine and the target:                                    "
+comment "|   - have the same endianness,                               "
+comment "|   - and have the same alignment requirements for uint32_t.  "
+comment "|  You will have to check by yourself (for now).              "
+endif # LIBC_glibc && LIBC_LOCALES
 
 if KERNEL_linux
 
-choice
+choice LIBC_GLIBC_SUPPORTED_KERNEL
     bool
     prompt "Minimum supported kernel version"
     default LIBC_GLIBC_KERNEL_VERSION_AS_HEADERS
@@ -104,7 +176,7 @@ config LIBC_GLIBC_KERNEL_VERSION_NONE
       Let ./configure decide what minimum kernel version glibc/eglibc
       will be able to run against.
       
-      This will inclde legacy compatibility code for older kernels in
+      This will include legacy compatibility code for older kernels in
       the C library, thus ensuring that it will run on a large number
       of old kernels.
       
@@ -119,7 +191,7 @@ config LIBC_GLIBC_KERNEL_VERSION_AS_HEADERS
     bool
     prompt "Same as kernel headers (default)"
     help
-      Normaly, you'll want glibc/eglibc to run against the same kernel
+      Normally, you'll want glibc/eglibc to run against the same kernel
       version as the one used for the headers.
       
       This is the default.
@@ -187,5 +259,3 @@ config LIBC_GLIBC_MIN_KERNEL
     default LIBC_GLIBC_MIN_KERNEL_VERSION if LIBC_GLIBC_KERNEL_VERSION_CHOSEN
 
 endif # KERNEL_linux
-
-endif # LIBC_glibc || LIBC_eglibc

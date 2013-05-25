@@ -5,22 +5,23 @@ menu "Target options"
 config ARCH
     string
 
-config ARCH_64
-    bool
-    default n
-
 # Pre-declare target optimisation variables
 config ARCH_SUPPORTS_BOTH_MMU
 config ARCH_SUPPORTS_BOTH_ENDIAN
+config ARCH_SUPPORTS_32
+config ARCH_SUPPORTS_64
 config ARCH_SUPPORT_ARCH
 config ARCH_SUPPORT_ABI
 config ARCH_SUPPORT_CPU
 config ARCH_SUPPORT_TUNE
 config ARCH_SUPPORT_FPU
+config ARCH_SUPPORT_SOFTFP
 
 config ARCH_DEFAULT_HAS_MMU
 config ARCH_DEFAULT_BE
 config ARCH_DEFAULT_LE
+config ARCH_DEFAULT_32
+config ARCH_DEFAULT_64
 
 config ARCH_ARCH
 config ARCH_ABI
@@ -29,42 +30,49 @@ config ARCH_TUNE
 config ARCH_FPU
 config ARCH_BE
 config ARCH_LE
+config ARCH_32
+config ARCH_64
+config ARCH_BITNESS
 config ARCH_FLOAT_HW
 config ARCH_FLOAT_SW
 config TARGET_CFLAGS
 config TARGET_LDFLAGS
 
-comment "General target options"
-
-source config.gen/arch.in
+source "config.gen/arch.in"
 
 #--------------------------------------
+comment "Generic target options"
+
 config ARCH_SUPPORTS_BOTH_MMU
     bool
-    default n
 
 config ARCH_DEFAULT_HAS_MMU
     bool
-    default n
 
 config ARCH_USE_MMU
     bool
     prompt "Use the MMU" if ARCH_SUPPORTS_BOTH_MMU
-    default n if ! ARCH_DEFAULT_HAS_MMU
     default y if ARCH_DEFAULT_HAS_MMU
+    help
+      If your architecture has an MMU and you want to use it,
+      say 'Y' here.
+      
+      OTOH, if you don't want to use the MMU, or your arch
+      lacks an MMU, say 'N' here.
+      
+      Note that some architectures (eg. ARM) has variants that
+      lacks an MMU (eg. ARM Cortex-M3), while other variants
+      have one (eg. ARM Cortex-A8).
 
 #--------------------------------------
 config ARCH_SUPPORTS_BOTH_ENDIAN
     bool
-    default n
 
 config ARCH_DEFAULT_BE
     bool
-    default n
 
 config ARCH_DEFAULT_LE
     bool
-    default n
 
 choice
     bool
@@ -84,27 +92,61 @@ config ARCH_LE
 endchoice
 
 #--------------------------------------
+config ARCH_SUPPORTS_32
+    bool
+
+config ARCH_SUPPORTS_64
+    bool
+
+config ARCH_DEFAULT_32
+    bool
+
+config ARCH_DEFAULT_64
+    bool
+
+config ARCH_BITNESS
+    int
+    default "32"    if ARCH_32
+    default "64"    if ARCH_64
+
+choice
+    bool
+    prompt "Bitness:"
+    default ARCH_32 if ARCH_DEFAULT_32
+    default ARCH_64 if ARCH_DEFAULT_64
+
+config ARCH_32
+    bool
+    prompt "32-bit"
+    depends on ARCH_SUPPORTS_32
+
+config ARCH_64
+    bool
+    prompt "64-bit"
+    depends on ARCH_SUPPORTS_64
+
+endchoice
+
+#--------------------------------------
 comment "Target optimisations"
 
 config ARCH_SUPPORT_ARCH
     bool
-    default n
 
 config ARCH_SUPPORT_ABI
     bool
-    default n
 
 config ARCH_SUPPORT_CPU
     bool
-    default n
 
 config ARCH_SUPPORT_TUNE
     bool
-    default n
 
 config ARCH_SUPPORT_FPU
     bool
-    default n
+
+config ARCH_SUPPORT_SOFTFP
+    bool
 
 config ARCH_ARCH
     string
@@ -140,7 +182,7 @@ config ARCH_ABI
       Pick a value from the gcc manual for your choosen gcc version and your
       target CPU.
 
-      Leave blank if you don't know, or if your target architecutre does not
+      Leave blank if you don't know, or if your target architecture does not
       offer this option.
 
 config ARCH_CPU
@@ -233,6 +275,22 @@ config ARCH_FLOAT_SW
       If your processor has no FPU, then you most probably want this, as it
       is faster than emulating the FPU in the kernel.
 
+config ARCH_FLOAT_SOFTFP
+    bool
+    prompt "softfp"
+    depends on ARCH_SUPPORT_SOFTFP
+    help
+      Emit hardware floating point opcodes but use the software
+      floating point calling convention.
+
+      Architectures such as ARM use different registers for passing
+      floating point values depending on if they're in software mode
+      or hardware mode.  softfp emits FPU instructions but uses the
+      software FP calling convention allowing softfp code to
+      interoperate with legacy software only code.
+
+      If in doubt, use 'software' or 'hardware' mode instead.
+
 endchoice
 
 config TARGET_CFLAGS
@@ -244,7 +302,7 @@ config TARGET_CFLAGS
       that will run on the target (eg. libc.so).
       
       Note that the options above for ARCH, ABI, CPU, TUNE and FPU will be
-      automaticaly used. You don't need to specify them here.
+      automatically used. You don't need to specify them here.
       
       Leave blank if you don't know better.
 
@@ -257,5 +315,13 @@ config TARGET_LDFLAGS
       that will run on your target.
       
       Leave blank if you don't know better.
+
+config ARCH_FLOAT
+    string
+    default "hard"   if ARCH_FLOAT_HW
+    default "soft"   if ARCH_FLOAT_SW
+    default "softfp" if ARCH_FLOAT_SOFTFP
+
+source "config.gen/arch.in.2"
 
 endmenu

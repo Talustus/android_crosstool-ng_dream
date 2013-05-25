@@ -2,16 +2,13 @@
 # crosstool-NG configuration targets
 # These targets are used from top-level makefile
 
-# Derive the project version from, well, the project version:
-export PROJECTVERSION=$(CT_VERSION)
-
 # The place where the kconfig stuff lies
 obj = kconfig
 
 #-----------------------------------------------------------
 # The configurators rules
 
-configurators = menuconfig oldconfig
+configurators = menuconfig nconfig oldconfig
 PHONY += $(configurators)
 
 $(configurators): config_files
@@ -20,9 +17,28 @@ menuconfig: $(obj)/mconf
 	@$(ECHO) "  CONF  $(KCONFIG_TOP)"
 	$(SILENT)$< $(KCONFIG_TOP)
 
+nconfig: $(obj)/nconf
+	@$(ECHO) "  CONF  $(KCONFIG_TOP)"
+	$(SILENT)$< $(KCONFIG_TOP)
+
 oldconfig: $(obj)/conf .config
 	@$(ECHO) "  CONF  $(KCONFIG_TOP)"
-	$(SILENT)$< -s $(KCONFIG_TOP)
+	$(SILENT)$< --silent$@ $(KCONFIG_TOP)
+
+# Always be silent, the stdout an be >.config
+extractconfig:
+	@awk 'BEGIN { dump=0; }                                                 \
+	      dump==1 && $$0~/^\[.....\][[:space:]]+(# |)CT_/ {                 \
+	          $$1="";                                                       \
+	          gsub("^[[:space:]]","");                                      \
+	          print;                                                        \
+	      }                                                                 \
+	      $$0~/Dumping user-supplied crosstool-NG configuration: done in/ { \
+	          dump=0;                                                       \
+	      }                                                                 \
+	      $$0~/Dumping user-supplied crosstool-NG configuration$$/ {        \
+	          dump=1;                                                       \
+	      }'
 
 #-----------------------------------------------------------
 # Help text used by make help
@@ -30,6 +46,8 @@ oldconfig: $(obj)/conf .config
 help-config::
 	@echo  '  menuconfig         - Update current config using a menu based program'
 	@echo  '  oldconfig          - Update current config using a provided .config as base'
+	@echo  '  extractconfig      - Extract to stdout the configuration items from a'
+	@echo  '                       build.log file piped to stdin'
 
 #-----------------------------------------------------------
 # Hmmm! Cheesy build!
@@ -44,11 +62,11 @@ HOST_CC ?= gcc -funsigned-char
 HOST_LD ?= gcc
 
 # Helpers
-check_gettext = $(CT_LIB_DIR)/kconfig/check-gettext.sh
+check_gettext = $(CT_LIB_DIR)/kconfig/check.sh
 check_lxdialog = $(CT_LIB_DIR)/kconfig/lxdialog/check-lxdialog.sh
 
 # Build flags
-CFLAGS = 
+CFLAGS = -DCONFIG_=\"CT_\" -DPACKAGE="\"crosstool-NG $(CT_VERSION)\""
 LDFLAGS =
 
 # Compiler flags to use gettext
@@ -56,7 +74,11 @@ INTL_CFLAGS = $(shell $(SHELL) $(check_gettext) $(HOST_CC) $(EXTRA_CFLAGS))
 
 # Compiler and linker flags to use ncurses
 NCURSES_CFLAGS = $(shell $(SHELL) $(check_lxdialog) -ccflags)
-NCURSES_LDFLAGS = $(shell $(SHELL) $(check_lxdialog) -ldflags $(HOST_CC) $(LX_FLAGS) $(EXTRA_CFLAGS))
+NCURSES_LDFLAGS = $(shell $(SHELL) $(check_lxdialog) -ldflags $(HOST_CC))
+
+# Check that we have the required ncurses stuff installed for lxdialog (menuconfig)
+dochecklxdialog:
+	$(SILENT)$(SHELL) $(check_lxdialog) -check $(HOST_CC) $(NCURSES_CFLAGS) $(NCURSES_LDFLAGS)
 
 # Common source files
 COMMON_SRC = kconfig/zconf.tab.c
@@ -82,20 +104,33 @@ mconf_OBJ = $(patsubst %.c,%.o,$(mconf_SRC))
 mconf_DEP = $(patsubst %.c,%.dep,$(mconf_SRC))
 $(mconf_OBJ) $(mconf_DEP): CFLAGS += $(NCURSES_CFLAGS) $(INTL_CFLAGS)
 $(obj)/mconf: LDFLAGS += $(NCURSES_LDFLAGS)
+
+# What's needed to build 'nconf'
+nconf_SRC = kconfig/nconf.c kconfig/nconf.gui.c
+nconf_OBJ = $(patsubst %.c,%.o,$(nconf_SRC))
+nconf_DEP = $(patsubst %.c,%.dep,$(nconf_SRC))
+$(nconf_OBJ) $(nconf_DEP): CFLAGS += $(INTL_CFLAGS)
+$(obj)/nconf: LDFLAGS += -lmenu -lpanel -lncurses
+
+# Under Cygwin, we need to auto-import some libs (which ones, exactly?)
+# for mconf and nconf to lin properly.
 ifeq ($(shell uname -o 2>/dev/null || echo unknown),Cygwin)
 $(obj)/mconf: LDFLAGS += -Wl,--enable-auto-import
+$(obj)/nconf: LDFLAGS += -Wl,--enable-auto-import
 endif
 
 # These are generated files:
-ALL_OBJS = $(sort $(COMMON_OBJ) $(LX_OBJ) $(conf_OBJ) $(mconf_OBJ))
-ALL_DEPS = $(sort $(COMMON_DEP) $(LX_DEP) $(conf_DEP) $(mconf_DEP))
+ALL_OBJS = $(sort $(COMMON_OBJ) $(LX_OBJ) $(conf_OBJ) $(mconf_OBJ) $(nconf_OBJ))
+ALL_DEPS = $(sort $(COMMON_DEP) $(LX_DEP) $(conf_DEP) $(mconf_DEP) $(nconf_DEP))
 
 # Cheesy auto-dependencies
 # Only parse the following if a configurator was called, to avoid building
 # dependencies when not needed (eg. list-steps, list-samples...)
-# We must be carefull what we enclose, because we need some of the variable
+# We must be careful what we enclose, because we need some of the variable
 # definitions for clean (and distclean) at least.
 # Just protecting the "-include $(DEPS)" line should be sufficient.
+# And in case we want menuconfig, we have to check that lxdialog
+# can find a curses lib.
 
 ifneq ($(strip $(MAKECMDGOALS)),)
 ifneq ($(strip $(filter $(configurators),$(MAKECMDGOALS))),)
@@ -106,6 +141,12 @@ DEPS += $(conf_DEP)
 endif
 ifneq ($(strip $(filter menuconfig,$(MAKECMDGOALS))),)
 DEPS += $(mconf_DEP) $(LX_DEP)
+$(COMMON_OBJ) $(COMMON_DEP): |dochecklxdialog
+$(LX_OBJ) $(LX_DEP): |dochecklxdialog
+$(mconf_OBJ) $(mconf_DEP): |dochecklxdialog
+endif
+ifneq ($(strip $(filter nconfig,$(MAKECMDGOALS))),)
+DEPS += $(nconf_DEP)
 endif
 
 -include $(DEPS)
@@ -115,7 +156,7 @@ endif # MAKECMDGOALS != ""
 
 # Each .o or .dep *can not* directly depend on kconfig/, because kconfig can
 # be touched during the build (who's touching it, btw?) so each .o or .dep
-# would be re-built when it sould not be.
+# would be re-built when it should not be.
 # So manually check for presence of $(obj) (ie. kconfig), and only mkdir
 # if needed. After all, that's not so bad...
 # mkdir $(obj)/lxdialog, because we need it, and incidentally, that
@@ -144,6 +185,10 @@ $(obj)/mconf: $(COMMON_OBJ) $(LX_OBJ) $(mconf_OBJ)
 	@$(ECHO) '  LD    $@'
 	$(SILENT)$(HOST_LD) -o $@ $^ $(LDFLAGS) $(EXTRA_LDFLAGS)
 
+$(obj)/nconf: $(COMMON_OBJ) $(nconf_OBJ)
+	@$(ECHO) '  LD    $@'
+	$(SILENT)$(HOST_LD) -o $@ $^ $(LDFLAGS) $(EXTRA_LDFLAGS)
+
 $(obj)/conf: $(COMMON_OBJ) $(conf_OBJ)
 	@$(ECHO) '  LD    $@'
 	$(SILENT)$(HOST_LD) -o $@ $^ $(LDFLAGS) $(EXTRA_LDFLAGS)
@@ -153,5 +198,5 @@ $(obj)/conf: $(COMMON_OBJ) $(conf_OBJ)
 
 clean::
 	@$(ECHO) "  CLEAN kconfig"
-	$(SILENT)rm -f kconfig/{,m}conf{,.exe} $(ALL_OBJS) $(ALL_DEPS)
+	$(SILENT)rm -f kconfig/{,m,n}conf{,.exe} $(ALL_OBJS) $(ALL_DEPS)
 	$(SILENT)rmdir --ignore-fail-on-non-empty kconfig{/lxdialog,} 2>/dev/null || true

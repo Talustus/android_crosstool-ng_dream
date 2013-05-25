@@ -6,26 +6,80 @@ CT_DoKernelTupleValues() {
     if [ "${CT_ARCH_USE_MMU}" = "y" ]; then
         CT_TARGET_KERNEL="linux"
     else
-        CT_TARGET_KERNEL="uclinux"
+    # Sometime, noMMU linux targets have a -uclinux tuple, while
+    # sometime it's -linux. We currently have only one noMMU linux
+    # target, and it uses -linux, so let's just use that. Time
+    # to fix that later...
+    #    CT_TARGET_KERNEL="uclinux"
+        CT_TARGET_KERNEL="linux"
     fi
 }
 
 # Download the kernel
 do_kernel_get() {
-    if [ "${CT_KERNEL_LINUX_USE_CUSTOM_HEADERS}" != "y" ]; then
-        CT_GetFile "linux-${CT_KERNEL_VERSION}" \
-                   {ftp,http}://ftp.{de.,eu.,}kernel.org/pub/linux/kernel/v2.{6{,/testing},4,2}
+    local k_ver
+    local custom_name
+    local rel_dir
+    local korg_base mirror_base
+
+    if [ "${CT_KERNEL_LINUX_USE_CUSTOM_HEADERS}" = "y"  ]; then
+        return 0
     fi
-    return 0
+
+    if [ "${CT_KERNEL_LINUX_CUSTOM}" = "y" ]; then
+        if [ ! -d "${CT_KERNEL_LINUX_CUSTOM_LOCATION}" ]; then
+            # Wee need to know the custom tarball extension,
+            # so we can create a properly-named symlink, which
+            # we use later on in 'extract'
+            case "${CT_KERNEL_LINUX_CUSTOM_LOCATION}" in
+                *.tar.bz2)      custom_name="linux-custom.tar.bz2";;
+                *.tar.gz|*.tgz) custom_name="linux-custom.tar.gz";;
+                *.tar)          custom_name="linux-custom.tar";;
+                *)  CT_Abort "Unknown extension for custom linux tarball '${CT_KERNEL_LINUX_CUSTOM_LOCATION}'";;
+            esac
+            CT_DoExecLog DEBUG ln -sf "${CT_KERNEL_LINUX_CUSTOM_LOCATION}"  \
+                                      "${CT_TARBALLS_DIR}/${custom_name}"
+        else
+            custom_name="linux-custom"
+            CT_DoExecLog DEBUG ln -s "${CT_KERNEL_LINUX_CUSTOM_LOCATION}"  \
+                                      "${CT_SRC_DIR}/${custom_name}"
+        fi
+    else # Not a custom tarball
+        case "${CT_KERNEL_VERSION}" in
+            2.6.*.*|3.*.*)
+                # 4-part versions (for 2.6 stables and long-terms), and
+                # 3-part versions (for 3.x.y stables and long-terms),
+                # we need to trash the last digit
+                k_ver="${CT_KERNEL_VERSION%.*}"
+                ;;
+            2.6.*|3.*)
+                # 3-part version (for 2.6.x initial releases), and 2-part
+                # versions (for 3.x initial releases), use all of it
+                k_ver="${CT_KERNEL_VERSION}"
+                ;;
+        esac
+        case "${CT_KERNEL_VERSION}" in
+            2.6.*)  rel_dir=v2.6;;
+            3.*)    rel_dir=v3.x;;
+        esac
+        korg_base="http://ftp.kernel.org/pub/linux/kernel/${rel_dir}"
+        mirror_base="http://ftp.free.fr/mirrors/ftp.kernel.org//linux/kernel/${rel_dir}"
+        CT_GetFile "linux-${CT_KERNEL_VERSION}"                         \
+                   "${korg_base}" "${korg_base}/longterm/v${k_ver}"     \
+                   "${mirror_base}" "${mirror_base}/longterm/v${k_ver}"
+    fi
 }
 
 # Extract kernel
 do_kernel_extract() {
-    if [ "${CT_KERNEL_LINUX_USE_CUSTOM_HEADERS}" != "y" ]; then
-        CT_Extract "linux-${CT_KERNEL_VERSION}"
-        CT_Patch "linux-${CT_KERNEL_VERSION}"
+    if [ "${CT_KERNEL_LINUX_USE_CUSTOM_HEADERS}" = "y" \
+         -o -d "${CT_KERNEL_LINUX_CUSTOM_LOCATION}" ]; then
+        return 0
     fi
-    return 0
+   
+    # This also handles the custom tarball
+    CT_Extract "linux-${CT_KERNEL_VERSION}"
+    CT_Patch "linux" "${CT_KERNEL_VERSION}"
 }
 
 # Wrapper to the actual headers install method
@@ -43,23 +97,24 @@ do_kernel_headers() {
 
 # Install kernel headers using headers_install from kernel sources.
 do_kernel_install() {
+    local kernel_path
+    local arch=${CT_LINUX_ARCH:-${CT_ARCH}}
+
     CT_DoLog DEBUG "Using kernel's headers_install"
 
     mkdir -p "${CT_BUILD_DIR}/build-kernel-headers"
-    cd "${CT_BUILD_DIR}/build-kernel-headers"
 
-    # Only starting with 2.6.18 does headers_install is usable. We only
-    # have 2.6 version available, so only test for sublevel.
-    k_sublevel=$(awk '/^SUBLEVEL =/ { print $3 }' "${CT_SRC_DIR}/linux-${CT_KERNEL_VERSION}/Makefile")
-    [ ${k_sublevel} -ge 18 ] || CT_Abort "Kernel version >= 2.6.18 is needed to install kernel headers."
-
+    kernel_path="${CT_SRC_DIR}/linux-${CT_KERNEL_VERSION}"
+    if [ "${CT_KERNEL_LINUX_CUSTOM}" = "y" ]; then
+        kernel_path="${CT_SRC_DIR}/linux-custom"
+    fi
     V_OPT="V=${CT_KERNEL_LINUX_VERBOSE_LEVEL}"
 
     CT_DoLog EXTRA "Installing kernel headers"
     CT_DoExecLog ALL                                    \
-    make -C "${CT_SRC_DIR}/linux-${CT_KERNEL_VERSION}"  \
-         O=$(pwd)                                       \
-         ARCH=${CT_KERNEL_ARCH}                         \
+    make -C "${kernel_path}"                            \
+         O="${CT_BUILD_DIR}/build-kernel-headers"       \
+         ARCH=${arch}                                   \
          INSTALL_HDR_PATH="${CT_SYSROOT_DIR}/usr"       \
          ${V_OPT}                                       \
          headers_install
@@ -67,14 +122,22 @@ do_kernel_install() {
     if [ "${CT_KERNEL_LINUX_INSTALL_CHECK}" = "y" ]; then
         CT_DoLog EXTRA "Checking installed headers"
         CT_DoExecLog ALL                                    \
-        make -C "${CT_SRC_DIR}/linux-${CT_KERNEL_VERSION}"  \
-             O=$(pwd)                                       \
-             ARCH=${CT_KERNEL_ARCH}                         \
+        make -C "${kernel_path}"                            \
+             O="${CT_BUILD_DIR}/build-kernel-headers"       \
+             ARCH=${arch}                                   \
              INSTALL_HDR_PATH="${CT_SYSROOT_DIR}/usr"       \
              ${V_OPT}                                       \
              headers_check
-        find "${CT_SYSROOT_DIR}" -type f -name '.check*' -exec rm {} \;
     fi
+
+    # Cleanup
+    find "${CT_SYSROOT_DIR}" -type f                        \
+                             \(    -name '.install'         \
+                                -o -name '..install.cmd'    \
+                                -o -name '.check'           \
+                                -o -name '..check.cmd'      \
+                             \)                             \
+                             -exec rm {} \;
 }
 
 # Use custom headers (most probably by using make headers_install in a
@@ -93,7 +156,6 @@ do_kernel_custom() {
             *.tgz)      tar_opt=--gzip;;
             *.tar.gz)   tar_opt=--gzip;;
             *.tar.bz2)  tar_opt=--bzip2;;
-            *.tar.lzma) tar_opt=--lzma;;
         esac
         CT_DoExecLog ALL tar x ${tar_opt} -vf ${CT_KERNEL_LINUX_CUSTOM_PATH}
     else

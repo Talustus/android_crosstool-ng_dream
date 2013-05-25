@@ -8,7 +8,7 @@ do_debug_strace_get() {
 
 do_debug_strace_extract() {
     CT_Extract "strace-${CT_STRACE_VERSION}"
-    CT_Patch "strace-${CT_STRACE_VERSION}"
+    CT_Patch "strace" "${CT_STRACE_VERSION}"
 }
 
 do_debug_strace_build() {
@@ -17,7 +17,7 @@ do_debug_strace_build() {
     CT_Pushd "${CT_BUILD_DIR}/build-strace"
 
     CT_DoLog EXTRA "Configuring strace"
-    CT_DoExecLog ALL                                        \
+    CT_DoExecLog CFG                                        \
     "${CT_SRC_DIR}/strace-${CT_STRACE_VERSION}/configure"   \
         --build=${CT_BUILD}                                 \
         --host=${CT_TARGET}                                 \

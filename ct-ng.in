@@ -32,6 +32,10 @@ include $(CT_LIB_DIR)/paths.mk
 # bash.
 export SHELL=$(bash)
 
+# GREP_OPTIONS=--color=always will break the generated .in files
+# We do not need any GREP_OPTIONS anyway, so set it to empty.
+export GREP_OPTIONS=
+
 # Make the restart/stop steps availabe to scripts/crostool-NG.sh
 export CT_STOP:=$(STOP)
 export CT_RESTART:=$(RESTART)
@@ -56,10 +60,11 @@ ifeq ($(strip $(origin V)),command line)
 endif # origin V
 export V SILENT ECHO
 
-.FORCE: $(FORCE)
+all: help
+
 .PHONY: $(PHONY)
 PHONY += all
-all: help
+FORCE:
 
 # Help system
 help:: help-head help-config help-samples help-build help-clean help-distrib help-env help-tail
@@ -89,14 +94,14 @@ help-distrib::
 
 help-env::
 	@echo
-	@echo  'Environement variables (see @@CT_DOCDIR@@/overview.txt):'
+	@echo  'Environement variables (see @@CT_DOCDIR@@/0 - Table of content.txt):'
 
 help-tail::
 	@echo
-	@echo  'Use action "config" or "menuconfig" to configure crosstool-NG'
+	@echo  'Use action "menuconfig" to configure your toolchain'
 	@echo  'Use action "build" to build your toolchain'
 	@echo  'Use action "version" to see the version'
-	@echo  'See "man 1 ct-ng" for some help as well'
+	@echo  'See "man 1 $(notdir $(CT_NG))" for some help as well'
 
 help-build::
 	@echo  '  build[.#]          - Build the currently configured toolchain'
@@ -118,6 +123,9 @@ help-distrib::
 	@echo  '  tarball            - Build a tarball of the configured toolchain'
 
 help-env::
+	@echo  '  V=0|1|2            - 0 => show only human-readable messages (default)'
+	@echo  '                       1 => show only the commands being executed'
+	@echo  '                       2 => show both'
 
 # End help system
 
@@ -127,11 +135,16 @@ help-env::
 	@echo "or configure an existing sample."
 	@false
 
-show-tuple: .config
+.config.2: .config
+	$(SILENT)$(sed) -r -e 's/^([^=]+_ARRAY)="(.*)"$$/\1=( \2 )/;'   \
+	                   -e '/^[^=]+_ARRAY=/s/\\(.)/\1/g;'            \
+	                $< >$@
+
+show-tuple: .config.2
 	$(SILENT)$(bash) $(CT_LIB_DIR)/scripts/showTuple.sh
 
 # Actual build
-build: .config
+build: .config.2
 	$(SILENT)$(CT_LIB_DIR)/scripts/crosstool-NG.sh
 
 build.%:
@@ -157,12 +170,13 @@ version:
 PHONY += clean
 clean::
 	@$(ECHO) "  CLEAN log"
-	$(SILENT)rm -f log.* .config.* ..config*
+	$(SILENT)rm -f build.log .config.* ..config*
 
 PHONY += distclean
 distclean:: clean
 	@$(ECHO) "  CLEAN .config"
 	$(SILENT)rm -f .config .config.* ..config*
-	@$(ECHO) "  CLEAN targets"
-	$(SILENT)chmod -R u+w targets >/dev/null 2>&1 || true
-	$(SILENT)rm -rf targets
+	@$(ECHO) "  CLEAN build dir"
+	$(SILENT)[ ! -d targets ] || chmod -R u+w targets
+	$(SILENT)[ ! -d .build  ] || chmod -R u+w .build
+	$(SILENT)rm -rf targets .build

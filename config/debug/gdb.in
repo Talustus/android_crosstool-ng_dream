@@ -1,173 +1,122 @@
 # GDB menu
 
-config DEBUG_gdb
-    help
-      Enable gdb for the target
+## help gdb is the GNU debugger
 
-config GDB_CROSS
-    bool
-    prompt "Cross-gdb"
-    default y
-    select GDB_GDBSERVER if ! BARE_METAL
-    help
-      Build and install a cross-gdb for the target, to run on host.
+source "config/debug/gdb.in.cross"
+source "config/debug/gdb.in.native"
+source "config/debug/gdb.in.gdbserver"
 
-config GDB_CROSS_STATIC
-    bool
-    prompt "Build a static cross gdb"
-    default n
-    depends on GDB_CROSS
-    help
-      A static cross gdb can be usefull if you debug on a machine that is
-      not the one that is used to compile the toolchain.
-      
-      That way, you can share the cross-gdb without installing a toolchain
-      on every machine that will be used to debug target programs.
+if GDB_CROSS || GDB_NATIVE || GDB_GDBSERVER
 
-config GDB_CROSS_INSIGHT
+comment "gdb version"
+
+config DEBUG_GDB_SHOW_LINARO
     bool
-    prompt "Use Insight instead (EXPERIMENTAL)"
-    default n
-    depends on GDB_CROSS
+    prompt "Show Linaro versions (EXPERIMENTAL)"
     depends on EXPERIMENTAL
     help
-      If you say 'Y' here, then Insight will be used to build the cross
-      debugger, instead of the plain gdb.
-      
-      Insight is gdb plus a TCL/TK GUI: http://sourceware.org/insight/
+      Linaro is maintaining some advanced/more stable/experimental versions
+      of gdb, especially for the ARM architecture.
 
-config GDB_NATIVE
-    bool
-    prompt "Native gdb"
-    default n
-    depends on ! BARE_METAL
-    help
-      Build and install a native gdb for the target, to run on the target.
+      Those versions have not been blessed by the gdb community (nor have they
+      been cursed either!), but they look to be pretty much stable, and even
+      more stable than the upstream versions. YMMV...
 
-config GDB_NATIVE_STATIC
-    bool
-    prompt "Build a static native gdb"
-    default n
-    depends on GDB_NATIVE
-    help
-      In case you have trouble with dynamic loading of shared libraries,
-      you will find that a static gdb comes in handy.
+      If you do not know what this Linaro stuff is, then simply say 'n' here,
+      and rest in peace. OTOH, if you know what you are doing, you will be
+      able to use and enjoy :-) the Linaro versions by saying 'y' here.
 
-config GDB_NATIVE_USE_GMP_MPFR
-    bool
-    prompt "Use GMP and MPFR"
-    default n
-    depends on GDB_NATIVE
-    select GMP_MPFR
-    select COMP_LIBS_TARGET
-    help
-      gdb can make use of the GMP and MPFR libraries.
-      
-      While the cross-gdb (above) can use the libraries compiled for the
-      host, the native gdb needs the libraries for the target (where it will
-      eventually run).
-      
-      Setting this option will force building the GMP and MPFR libraries for
-      the target, and configure the native gdb to use them.
-
-config GDB_GDBSERVER
-    bool
-    prompt "gdbserver"
-    default n
-    depends on ! BARE_METAL
-    help
-      Build and install a gdbserver for the target, to run on the target.
-
-config GDB_GDBSERVER_STATIC
-    bool
-    prompt "Build a static gdbserver"
-    default y
-    depends on GDB_GDBSERVER
-    help
-      In case you have trouble with dynamic loading of shared libraries,
-      you will find that a static gdbserver comes in handy.
-
-if BARE_METAL
-comment "In bare-metal, you'll need to   "
-comment "provide your own gdbserver stub."
-endif # BARE_METAL
+      Linaro: http://www.linaro.org/
 
 choice
     bool
     prompt "gdb version"
-    depends on GDB_CROSS || GDB_NATIVE || GDB_GDBSERVER
 # Don't remove next line
 # CT_INSERT_VERSION_BELOW
-
-config GDB_V_6_8
+config GDB_V_linaro_7_6_2013_05
     bool
-    prompt "6.8"
+    prompt "linaro-7.6-2013.05 (EXPERIMENTAL)"
+    depends on DEBUG_GDB_SHOW_LINARO
+    select GDB_7_0_or_later
 
-config GDB_V_6_7_1
+config GDB_V_7_6_PRE
     bool
-    prompt "6.7.1 (EXPERIMENTAL)"
+    prompt "7.6~20121001+git3e2e76a (EXPERIMENTAL)"
+    depends on EXPERIMENTAL && ARCH_aarch64
+    select GDB_7_0_or_later
+
+config GDB_V_linaro_7_5_2012_12
+    bool
+    prompt "linaro-7.5-2012.12 (EXPERIMENTAL)"
+    depends on DEBUG_GDB_SHOW_LINARO
+    select GDB_7_0_or_later
+
+config GDB_V_7_3a
+    bool
+    prompt "7.3a (EXPERIMENTAL)"
     depends on EXPERIMENTAL
+    select GDB_7_0_or_later
 
-config GDB_V_6_7
+config GDB_V_linaro_7_2_2011_05_0
     bool
-    prompt "6.7 (EXPERIMENTAL)"
+    prompt "linaro-7.2-2011.05-0 (EXPERIMENTAL)"
+    depends on DEBUG_GDB_SHOW_LINARO
+    select GDB_7_0_or_later
+
+config GDB_V_7_2a
+    bool
+    prompt "7.2a (EXPERIMENTAL)"
     depends on EXPERIMENTAL
+    select GDB_7_0_or_later
 
-config GDB_V_6_6
+config GDB_V_7_1a
     bool
-    prompt "6.6"
-
-config GDB_V_6_5
-    bool
-    prompt "6.5 (OBSOLETE)"
-    depends on OBSOLETE
-
-config GDB_V_6_4
-    bool
-    prompt "6.4 (OBSOLETE)"
-    depends on OBSOLETE
-
-config GDB_V_snapshot
-    bool
-    prompt "snapshot (EXPERIMENTAL)"
+    prompt "7.1a (EXPERIMENTAL)"
     depends on EXPERIMENTAL
-    depends on ! GDB_CROSS_INSIGHT
+    select GDB_7_0_or_later
+
+config GDB_V_7_0_1a
+    bool
+    prompt "7.0.1a (EXPERIMENTAL)"
+    depends on EXPERIMENTAL
+    select GDB_7_0_or_later
+
+config GDB_V_7_0a
+    bool
+    prompt "7.0a (EXPERIMENTAL)"
+    depends on EXPERIMENTAL
+    select GDB_7_0_or_later
+
+config GDB_V_6_8a
+    bool
+    prompt "6.8a"
 
 endchoice
+
+config GDB_7_0_or_later
+    bool
+    select GDB_HAS_PKGVERSION_BUGURL
+    select GDB_INSTALL_GDBINIT
+
+config GDB_HAS_PKGVERSION_BUGURL
+    bool
+
+config GDB_INSTALL_GDBINIT
+    bool
 
 config GDB_VERSION
     string
 # Don't remove next line
 # CT_INSERT_VERSION_STRING_BELOW
-    default "6.8" if GDB_V_6_8
-    default "6.7.1" if GDB_V_6_7_1
-    default "6.7" if GDB_V_6_7
-    default "6.6" if GDB_V_6_6
-    default "6.5" if GDB_V_6_5
-    default "6.4" if GDB_V_6_4
-    default "snapshot" if GDB_V_snapshot
+    default "7.6~20121001+git3e2e76a" if GDB_V_7_6_PRE
+    default "linaro-7.6-2013.05" if GDB_V_linaro_7_6_2013_05
+    default "linaro-7.5-2012.12" if GDB_V_linaro_7_5_2012_12
+    default "7.3a" if GDB_V_7_3a
+    default "linaro-7.2-2011.05-0" if GDB_V_linaro_7_2_2011_05_0
+    default "7.2a" if GDB_V_7_2a
+    default "7.1a" if GDB_V_7_1a
+    default "7.0.1a" if GDB_V_7_0_1a
+    default "7.0a" if GDB_V_7_0a
+    default "6.8a" if GDB_V_6_8a
 
-if GDB_NATIVE
-
-comment "Native gdb needs a native ncurses library"
-
-choice
-    bool
-    prompt "ncurses version"
-
-config NCURSES_V_5_7
-    bool
-    prompt "5.7"
-
-config NCURSES_V_5_6
-    bool
-    prompt "5.6"
-
-endchoice
-
-config NCURSES_VERSION
-    string
-    default "5.7" if NCURSES_V_5_7
-    default "5.6" if NCURSES_V_5_6
-
-endif # GDB_NATIVE --> ncurses
+endif

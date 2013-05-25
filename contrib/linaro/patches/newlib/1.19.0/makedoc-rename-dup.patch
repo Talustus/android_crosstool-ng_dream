@@ -1,0 +1,24 @@
+diff -ur newlib-1.19.0/newlib/doc/makedoc.c newlib/newlib/doc/makedoc.c
+--- newlib-1.19.0/newlib/doc/makedoc.c	2009-03-26 10:16:04.000000000 +1300
++++ newlib/newlib/doc/makedoc.c	2011-12-15 14:41:41.544326852 +1300
+@@ -1012,7 +1012,7 @@
+     
+ }
+ 
+-WORD(dup)
++WORD(dup_)
+ {
+     tos++;
+     init_string(tos);
+@@ -1410,7 +1410,7 @@
+     add_intrinsic("skip_past_newline", skip_past_newline );
+     add_intrinsic("catstr", icatstr );
+     add_intrinsic("copy_past_newline", icopy_past_newline );
+-    add_intrinsic("dup", dup );
++    add_intrinsic("dup", dup_ );
+     add_intrinsic("remchar", remchar );
+     add_intrinsic("get_stuff_in_command", get_stuff_in_command );
+     add_intrinsic("get_stuff_in_angle", get_stuff_in_angle );
+Only in newlib/newlib/doc: makedoc.i
+Only in newlib/newlib/doc: makedoc.o
+Only in newlib/newlib/doc: makedoc.s

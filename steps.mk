@@ -8,8 +8,8 @@ help-build::
 	@echo  '  list-steps         - List all build steps'
 
 help-env::
-	@echo  '  STOP               - Stop the build just after this step'
-	@echo  '  RESTART            - Restart the build just before this step'
+	@echo  '  STOP=step          - Stop the build just after this step (list with list-steps)'
+	@echo  '  RESTART=step       - Restart the build just before this step (list with list-steps)'
 
 # ----------------------------------------------------------
 # The steps list
@@ -17,26 +17,31 @@ help-env::
 # Please keep the last line with a '\' and keep the following empy line:
 # it helps when diffing and merging.
 CT_STEPS := libc_check_config   \
-            kernel_headers      \
             gmp                 \
             mpfr                \
             ppl                 \
+            cloog_ppl           \
+            isl                 \
             cloog               \
             mpc                 \
+            libelf              \
+            zlib                \
+            libiconv            \
             binutils            \
             elf2flt             \
+            sstrip              \
             cc_core_pass_1      \
-            libc_headers        \
+            kernel_headers      \
             libc_start_files    \
             cc_core_pass_2      \
             libc                \
             cc                  \
             libc_finish         \
-            gmp_target          \
-            mpfr_target         \
+            libelf_target       \
             binutils_target     \
-            tools               \
             debug               \
+            cross_extras        \
+            test_suite          \
             finish              \
 
 # Make the list available to sub-processes (scripts/crosstool-NG.sh needs it)

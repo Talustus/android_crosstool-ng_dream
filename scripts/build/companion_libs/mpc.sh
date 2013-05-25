@@ -5,10 +5,9 @@
 do_mpc_get() { :; }
 do_mpc_extract() { :; }
 do_mpc() { :; }
-do_mpc_target() { :; }
 
 # Overide functions depending on configuration
-if [ "${CT_PPL_CLOOG_MPC}" = "y" ]; then
+if [ "${CT_MPC}" = "y" ]; then
 
 # Download MPC
 do_mpc_get() {
@@ -19,7 +18,7 @@ do_mpc_get() {
 # Extract MPC
 do_mpc_extract() {
     CT_Extract "mpc-${CT_MPC_VERSION}"
-    CT_Patch "mpc-${CT_MPC_VERSION}"
+    CT_Patch "mpc" "${CT_MPC_VERSION}"
 }
 
 do_mpc() {
@@ -29,23 +28,24 @@ do_mpc() {
     CT_DoStep INFO "Installing MPC"
 
     CT_DoLog EXTRA "Configuring MPC"
+
+    CT_DoExecLog CFG                                \
     CFLAGS="${CT_CFLAGS_FOR_HOST}"                  \
-    CT_DoExecLog ALL                                \
     "${CT_SRC_DIR}/mpc-${CT_MPC_VERSION}/configure" \
         --build=${CT_BUILD}                         \
         --host=${CT_HOST}                           \
-        --prefix="${CT_PREFIX_DIR}"                 \
-        --with-gmp="${CT_PREFIX_DIR}"               \
-        --with-mpfr="${CT_PREFIX_DIR}"              \
-        --enable-shared                             \
-        --disable-static                            \
+        --prefix="${CT_COMPLIBS_DIR}"               \
+        --with-gmp="${CT_COMPLIBS_DIR}"             \
+        --with-mpfr="${CT_COMPLIBS_DIR}"            \
+        --disable-shared                            \
+        --enable-static
 
     CT_DoLog EXTRA "Building MPC"
-    CT_DoExecLog ALL make ${PARALLELMFLAGS}
+    CT_DoExecLog ALL make ${JOBSFLAGS}
 
-    if [ "${CT_COMP_LIBS_CHECK}" = "y" ]; then
+    if [ "${CT_COMPLIBS_CHECK}" = "y" ]; then
         CT_DoLog EXTRA "Checking MPC"
-        CT_DoExecLog ALL make ${PARALLELMFLAGS} -s check
+        CT_DoExecLog ALL make ${JOBSFLAGS} -s check
     fi
 
     CT_DoLog EXTRA "Installing MPC"
@@ -54,4 +54,4 @@ do_mpc() {
     CT_EndStep
 }
 
-fi # CT_PPL_CLOOG_MPC
+fi # CT_MPC

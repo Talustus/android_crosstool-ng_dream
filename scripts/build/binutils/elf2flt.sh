@@ -3,6 +3,13 @@
 # Copyright 2007 Yann E. MORIN
 # Licensed under the GPL v2. See COPYING in the root of this package
 
+# Default: do nothing
+do_elf2flt_get()     { :; }
+do_elf2flt_extract() { :; }
+do_elf2flt()         { :; }
+
+if [ -n "${CT_ARCH_BINFMT_FLAT}" ]; then
+
 # Download elf2flt
 do_elf2flt_get() {
     CT_GetCVS "elf2flt-cvs-${CT_ELF2FLT_VERSION}"           \
@@ -15,12 +22,11 @@ do_elf2flt_get() {
 # Extract elf2flt
 do_elf2flt_extract() {
     CT_Extract "elf2flt-cvs-${CT_ELF2FLT_VERSION}"
-    CT_Patch "elf2flt-cvs-${CT_ELF2FLT_VERSION}"
+    CT_Patch "elf2flt-cvs" "${CT_ELF2FLT_VERSION}"
 }
 
 # Build elf2flt
 do_elf2flt() {
-    [ -z ${CT_KERNEL_UCLINUX_BINFMT_FLAT} ] && return 0
     mkdir -p "${CT_BUILD_DIR}/build-elf2flt"
     cd "${CT_BUILD_DIR}/build-elf2flt"
 
@@ -31,8 +37,8 @@ do_elf2flt() {
     binutils_src=${CT_SRC_DIR}/binutils-${CT_BINUTILS_VERSION}
 
     CT_DoLog EXTRA "Configuring elf2flt"
+    CT_DoExecLog CFG                                            \
     CFLAGS="${CT_CFLAGS_FOR_HOST}"                              \
-    CT_DoExecLog ALL                                            \
     "${CT_SRC_DIR}/elf2flt-cvs-${CT_ELF2FLT_VERSION}/configure" \
         --build=${CT_BUILD}                                     \
         --host=${CT_HOST}                                       \
@@ -43,10 +49,10 @@ do_elf2flt() {
         --with-libbfd=${binutils_bld}/bfd/libbfd.a              \
         --with-libiberty=${binutils_bld}/libiberty/libiberty.a  \
         ${elf2flt_opts}                                         \
-        ${CT_ELF2FLT_EXTRA_CONFIG}			
+        "${CT_ELF2FLT_EXTRA_CONFIG_ARRAY[@]}"
 
     CT_DoLog EXTRA "Building elf2flt"
-    CT_DoExecLog ALL make ${PARALLELMFLAGS}
+    CT_DoExecLog ALL make ${JOBSFLAGS}
 
     CT_DoLog EXTRA "Installing elf2flt"
     CT_DoExecLog ALL make install
@@ -67,3 +73,5 @@ do_elf2flt() {
 
     CT_EndStep
 }
+
+fi # CT_ARCH_BINFMT_FLAT

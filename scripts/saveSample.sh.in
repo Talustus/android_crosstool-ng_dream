@@ -21,7 +21,11 @@ exec >/dev/null
 rm -f "${tmp_log_file}"
 
 # Parse the configuration file
-CT_TestOrAbort "Configuration file not found. Please create one." -f .config
+# Don't use CT_TestOrAbort, it prints the test string to [DEBUG]
+# Note: we just need the non-mangled .config, not .config.2
+if [ ! -f .config ]; then
+    CT_Abort "Configuration file not found. Please create one."
+fi
 . .config
 
 # We can not reliably save a sample which either uses local patches
@@ -69,6 +73,8 @@ samp_dir="samples/${samp_name}"
 mkdir -p "${samp_dir}"
 
 # Save the crosstool-NG config file
+# We need to save the real .config with kconfig's values,
+# not our mangled .config.2 with arrays
 "${sed}" -r -e 's|^(CT_PREFIX_DIR)=.*|\1="${HOME}/x-tools/${CT_TARGET}"|;'      \
             -e 's|^# CT_LOG_TO_FILE is not set$|CT_LOG_TO_FILE=y|;'             \
             -e 's|^# CT_LOG_FILE_COMPRESS is not set$|CT_LOG_FILE_COMPRESS=y|;' \

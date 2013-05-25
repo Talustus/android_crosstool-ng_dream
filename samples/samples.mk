@@ -4,7 +4,12 @@
 # Build the list of available samples
 CT_TOP_SAMPLES := $(patsubst $(CT_TOP_DIR)/samples/%/crosstool.config,%,$(wildcard $(CT_TOP_DIR)/samples/*/crosstool.config))
 CT_LIB_SAMPLES := $(filter-out $(CT_TOP_SAMPLES),$(patsubst $(CT_LIB_DIR)/samples/%/crosstool.config,%,$(wildcard $(CT_LIB_DIR)/samples/*/crosstool.config)))
-CT_SAMPLES := $(sort $(CT_TOP_SAMPLES) $(CT_LIB_SAMPLES))
+CT_SAMPLES := $(shell echo $(sort $(CT_TOP_SAMPLES) $(CT_LIB_SAMPLES))  \
+                      |$(sed) -r -e 's/ /\n/g;'                         \
+                      |$(sed) -r -e 's/(.*),(.*)/\2,\1/;'               \
+                      |sort                                             \
+                      |$(sed) -r -e 's/(.*),(.*)/\2,\1/;'               \
+               )
 
 # ----------------------------------------------------------
 # This part deals with the samples help entries
@@ -14,41 +19,60 @@ help-config::
 
 help-samples::
 	@echo  '  list-samples       - prints the list of all samples (for scripting)'
-	@echo  '  show-<sample>      - show a brief overview of <sample> (list below)'
-	@echo  '  <sample>           - preconfigure crosstool-NG with <sample> (list below)'
-	@echo  '  build-all[.#]      - Build *all* samples (list below) and install in'
+	@echo  '  show-<sample>      - show a brief overview of <sample> (list with list-samples)'
+	@echo  '  <sample>           - preconfigure crosstool-NG with <sample> (list with list-samples)'
+	@echo  '  build-all[.#]      - Build *all* samples (list with list-samples) and install in'
 	@echo  '                       $${CT_PREFIX} (which you must set)'
-	@echo  '  Available samples:'
-	@$(CT_LIB_DIR)/scripts/showSamples.sh $(CT_SAMPLES)
 
 help-distrib::
 	@echo  '  wiki-samples       - Print a DokuWiki table of samples'
 
 help-env::
-	@echo  '  CT_PREFIX          - directory in which to auto-install samples'
-	@echo  '                       (see action "build-all", above).'
+	@echo  '  CT_PREFIX=dir      - install samples in dir (see action "build-all", above).'
 
 # ----------------------------------------------------------
 # This part deals with printing samples information
+
+# Print the details of current configuration
+PHONY += show-config
+show-config: .config
+	@export current_tuple=$(shell $(MAKE) -rf "$(CT_NG)" show-tuple );  \
+	$(CT_LIB_DIR)/scripts/showSamples.sh -v current
 
 # Prints the details of a sample
 PHONY += $(patsubst %,show-%,$(CT_SAMPLES))
 $(patsubst %,show-%,$(CT_SAMPLES)):
 	@$(CT_LIB_DIR)/scripts/showSamples.sh -v $(patsubst show-%,%,$(@))
 
+# Prints the details of all samples
+PHONY += show-all
+show-all: $(patsubst %,show-%,$(CT_SAMPLES))
+
 # print the list of all available samples
 PHONY += list-samples
-list-samples: .FORCE
-	@echo $(CT_SAMPLES) |$(sed) -r -e 's/ /\n/g;' |sort
+list-samples: FORCE
+	$(SILENT)$(CT_LIB_DIR)/scripts/showSamples.sh $(CT_SAMPLES)
 
+PHONY += list-samples-short
+list-samples-short: FORCE
+	$(SILENT)for s in $(CT_SAMPLES); do \
+	    printf "$${s}\n";               \
+	done
+
+PHONY += wiki-samples
 wiki-samples:
 	$(SILENT)$(CT_LIB_DIR)/scripts/showSamples.sh -w $(CT_SAMPLES)
 
 # ----------------------------------------------------------
 # This part deals with saving/restoring samples
 
+PHONY += samples
+samples:
+	@$(ECHO) '  MKDIR $@'
+	$(SILENT)mkdir -p $@
+
 # Save a sample
-saveconfig:
+saveconfig: .config samples
 	$(SILENT)$(CT_LIB_DIR)/scripts/saveSample.sh
 
 # The 'sample_dir' function prints the directory in which the sample is,
@@ -66,8 +90,8 @@ $(CT_SAMPLES):
 	@echo  '***********************************************************'
 	@echo
 	$(SILENT)( . $(call sample_dir,$@)/reported.by;                             \
-	   echo "Initially reported by: $${reporter_name:-Yann E. MORIN}";          \
-	   echo "URL: $${reporter_url:-http://ymorin.is-a-geek.org/}";              \
+	   echo "Initially reported by: $${reporter_name}";                         \
+	   echo "URL: $${reporter_url}";                                            \
 	   if [ -n "$${reporter_comment}" ]; then                                   \
 	     echo  ;                                                                \
 	     echo  "Comment:";                                                      \

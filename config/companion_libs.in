@@ -4,66 +4,139 @@
 
 menu "Companion libraries"
 
-config WRAPPER_NEEDED
+config COMPLIBS_NEEDED
     bool
-    default n
 
-config GMP_MPFR
+config GMP_NEEDED
     bool
-    prompt "GMP and MPFR"
-    select WRAPPER_NEEDED
-    help
-      gcc 4.3.0 and above requires both GMP and MPFR to build some frontends,
-      and some other components can use them as well.
-      
-      These will be automatically selected if you choose gcc>=4.3.0, but you
-      can say 'Y' here if you want to build those two libraries for the other
-      components (that don't select them by default).
-      
-      The packages that can use GMP and MPFR are:
-        - binutils
-        - gcc
-        - gdb
+    select GMP
+    select COMPLIBS_NEEDED
 
-if GMP_MPFR
-source config/companion_libs/gmp.in
-source config/companion_libs/mpfr.in
+config MPFR_NEEDED
+    bool
+    select MPFR
+    select COMPLIBS_NEEDED
+
+config PPL_NEEDED
+    bool
+    select PPL
+    select COMPLIBS_NEEDED
+
+config CLOOG_PPL_NEEDED
+    bool
+    select CLOOG_PPL
+    select COMPLIBS_NEEDED
+
+config ISL_NEEDED
+    bool
+    select ISL
+    select COMPLIBS_NEEDED
+
+config CLOOG_NEEDED
+    bool
+    select CLOOG
+    select COMPLIBS_NEEDED
+
+config MPC_NEEDED
+    bool
+    select MPC
+    select COMPLIBS_NEEDED
+
+config LIBELF_NEEDED
+    bool
+    select LIBELF
+    select COMPLIBS_NEEDED
+
+config ZLIB_NEEDED
+    bool
+
+config LIBICONV_NEEDED
+    bool
+
+config COMPLIBS
+    bool
+
+config GMP
+    bool
+    select COMPLIBS
+
+config MPFR
+    bool
+    select GMP
+    select COMPLIBS
+
+config PPL
+    bool
+    select GMP
+    select COMPLIBS
+
+config CLOOG_PPL
+    bool
+    select GMP
+    select PPL
+    select COMPLIBS
+
+config ISL
+    bool
+    select GMP
+    select COMPLIBS
+
+config CLOOG
+    bool
+    select GMP
+    select ISL
+    select COMPLIBS
+
+config MPC
+    bool
+    select GMP
+    select MPFR
+    select COMPLIBS
+
+config LIBELF
+    bool
+    select COMPLIBS
+
+config LIBELF_TARGET
+    bool
+
+if GMP
+source "config/companion_libs/gmp.in"
 endif
-
-config PPL_CLOOG_MPC
-    bool
-    prompt "PPL, GLooG/PPL and MPC"
-    select GMP_MPFR
-    select WRAPPER_NEEDED
-    help
-      gcc-4.4.0 and above requires PPL and CLooG/PPL to build some parts
-      of the optimiser (GRAPHITE loop optimisation, to be precise).
-      
-      In addition to those, gcc-4.4 also optionally uses MPC to enable
-      additional optimisations on complex numbers. Although MPC is optional,
-      crosstool-NG requires it and uses it to build gcc >= 4.4.0.
-      
-      These will be automatically selected if you choose gcc>=4.4.0, but you
-      can say 'Y' here, although it is unknown yet if any other component
-      can use them.
-
-if PPL_CLOOG_MPC
-source config/companion_libs/ppl.in
-source config/companion_libs/cloog.in
-source config/companion_libs/mpc.in
+if MPFR
+source "config/companion_libs/mpfr.in"
+endif
+if PPL
+source "config/companion_libs/ppl.in"
+endif
+if CLOOG_PPL
+source "config/companion_libs/cloog-ppl.in"
+endif
+if ISL
+source "config/companion_libs/isl.in"
+endif
+if CLOOG
+source "config/companion_libs/cloog.in"
+endif
+if MPC
+source "config/companion_libs/mpc.in"
+endif
+if LIBELF || LIBELF_TARGET
+comment "libelf version needed to build for target"
+    depends on !LIBELF
+source "config/companion_libs/libelf.in"
 endif
 
 config FOO
     bool
 
-comment "Companion libraries common options"
-    depends on GMP_MPFR || PPL_CLOOG_MPC
+if COMPLIBS
 
-config COMP_LIBS_CHECK
+comment "Companion libraries common options"
+
+config COMPLIBS_CHECK
     bool
-    prompt "|  Check the companion libraries builds (!!! READ HELP!!!)"
-    depends on GMP_MPFR || PPL_CLOOG_MPC
-    default n
+    prompt "Check the companion libraries builds (!!! READ HELP!!!)"
     help
       It is highly recommended to check the newly built companion libraries.
       Unfortunately, this is a very intensive task, and takes a loooong time.
@@ -78,48 +151,6 @@ config COMP_LIBS_CHECK
       building PPL on my machine takes roughly 1'40", while checking it takes
       about 1h40'...
 
-config COMP_LIBS_TARGET
-    bool
-    prompt "|  Build companion libraries for the target"
-    depends on GMP_MPFR || PPL_CLOOG_MPC
-    depends on ! BARE_METAL
-    default n
-    help
-      Also build companion libraries for the target. This can be usefull if
-      you want to later build a compiler that will run on the target, or if
-      you want to run gdb natively on the target.
-      
-      Please note that for now, crosstool-NG can only build GMP and MPFR so.
-
-choice
-    bool
-    prompt "|  Install tools wrapper as:"
-    depends on WRAPPER_NEEDED
-    default TOOLS_WRAPPER_SHELL
-
-config TOOLS_WRAPPER_SCRIPT
-    bool
-    prompt "shell script"
-    help
-      If your host has a shell, then you should say 'Y' here, to use
-      a (very very simple) shell script as wrapper.
-      
-      See docs/overview.txt, section "Tools wrapper".
-
-config TOOLS_WRAPPER_EXEC
-    bool
-    prompt "executable"
-    help
-      If your host lacks a shell, then you should say 'Y' here, to use
-      an executable.
-      
-      See docs/overview.txt, section "Tools wrapper".
-
-endchoice
-
-config TOOLS_WRAPPER
-    string
-    default "script" if TOOLS_WRAPPER_SCRIPT
-    default "exec"   if TOOLS_WRAPPER_EXEC
+endif # COMPLIBS
 
 endmenu

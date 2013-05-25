@@ -4,7 +4,7 @@ comment "Paths"
 
 config LOCAL_TARBALLS_DIR
     string
-    prompt "Local tarballs directory"
+    prompt "Local tarballs directory" if ! BACKEND
     default ""
     help
       If you have previously downloaded the tarballs, enter the PATH where
@@ -12,21 +12,21 @@ config LOCAL_TARBALLS_DIR
 
 config SAVE_TARBALLS
     bool
-    prompt "Save new tarballs"
-    default n
-    depends on LOCAL_TARBALLS_DIR != ""
+    prompt "Save new tarballs" if ! BACKEND
+    depends on LOCAL_TARBALLS_DIR != "" || BACKEND
+    default y if BACKEND
     help
       If you say 'y' here, new downloaded tarballs will be saved in the
       directory you entered above.
 
 config WORK_DIR
     string
-    prompt "Working directory"
-    default "${CT_TOP_DIR}/targets"
+    prompt "Working directory" if ! BACKEND
+    default "${CT_TOP_DIR}/.build"
     help
       Set this to the directory where all build actions will be done.
       
-      The default is "${CT_TOP_DIR}/targets", and leaving this option
+      The default is "${CT_TOP_DIR}/.build", and leaving this option
       empty will also use the default.
       
       You should not need to change that, except in one very peculiar
@@ -42,7 +42,7 @@ config WORK_DIR
 
 config PREFIX_DIR
     string
-    prompt "Prefix directory"
+    prompt "Prefix directory" if ! BACKEND
     default "${HOME}/x-tools/${CT_TARGET}"
     help
       This is the path the toolchain will run from.
@@ -60,6 +60,28 @@ config INSTALL_DIR
 #      The reason you might also want to install elsewhere is if you are going
 #      to package your shinny new toolchain for distribution.
 
+config RM_RF_PREFIX_DIR
+    bool
+    prompt "|  Remove the prefix dir prior to building"
+    default y
+    depends on !BACKEND
+    help
+      If you say 'y' here, then PREFIX_DIR (above) will be eradicated
+      prior to the toolchain is built.
+      
+      This can be useful when you are trying different settings (due
+      to build failures or feature tests). In this case, to avoid using
+      a potentially broken previous toolchain, the install location is
+      removed, to start afresh.
+      
+      On the other hand, if you are building a final toolchain, and install
+      it into a directory with pre-install, unrelated programs, it would be
+      damageable to remove that directory. In this case, you may want to
+      say 'n' here.
+      
+      Note that when acting as a backend, this option is not available, and
+      is forced to 'n'.
+
 config REMOVE_DOCS
     bool
     prompt "Remove documentation"
@@ -67,6 +89,14 @@ config REMOVE_DOCS
     help
       Remove the installed documentation (man and info pages).
       Gains around 8MiB for a uClibc-based, C and C++ compiler.
+
+config BUILD_MANUALS
+    bool
+    prompt "Build the manuals"
+    depends on ! REMOVE_DOCS
+    help
+      Build the PDF and HTML manuals for the main components such as
+      binutils, GCC, GDB, and the C library.
 
 config INSTALL_DIR_RO
     bool
@@ -76,4 +106,14 @@ config INSTALL_DIR_RO
       Render the directory of the toolchain (and its sub-directories)
       read-only.
       
-      Usefull for toolchains destined for production.
+      Useful for toolchains destined for production.
+
+config STRIP_ALL_TOOLCHAIN_EXECUTABLES
+    bool
+    prompt "Strip all toolchain executables"
+    default y
+    help
+      All build host executables contain a lot of unnecessary info.
+      By stripping all executables it slightly speeds up the compilation
+      of large projects.
+      NOTE: It does NOT strip the target libraries, only HOST executables
