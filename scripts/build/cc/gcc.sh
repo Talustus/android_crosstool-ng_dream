@@ -304,6 +304,7 @@ do_cc_core() {
     if [ "${CT_TOOLCHAIN_ENABLE_MULTILIB}" = "y" ]; then
         extra_config+=("--enable-multilib")
     else
+        extra_config+=("--enable-multiarch")
         extra_config+=("--disable-multilib")
     fi
 
@@ -461,6 +462,7 @@ do_cc() {
         extra_config+=("--enable-multilib")
     else
         extra_config+=("--disable-multilib")
+        extra_config+=("--enable-multiarch")
     fi
 
     for tmp in ARCH ABI CPU TUNE FPU FLOAT; do

@@ -19,17 +19,23 @@ HOSTS = linux runtime win32
 FULL_VERSION = $(shell awk '-F"' '/^CT_CC_VERSION/ { print $$2 }' \
                       samples/linaro-$(TARGET)/crosstool.config)
 VERSION = $(subst linaro-,,$(FULL_VERSION))
+GCC_VERSION = $(shell echo $(VERSION) | sed -e 's/-/ /')
 
-GCC_VERSION = $(shell echo $(VERSION) | sed -e 's/-/ /g')
-TOOLCHAIN_VERSION = $(shell echo $(VERSION) | sed -e 's/^.*-//g')
+TOOLCHAIN_TMP = $(shell echo $(VERSION) | sed -e 's/^[^-]*-//g')
+TOOLCHAIN_VERSION = $(shell echo $(TOOLCHAIN_TMP) | sed -e 's/-.*//g')
 
 GDB_FULL = $(shell awk '-F"' '/^CT_GDB_VERSION/ { print $$2 }'    \
                    samples/linaro-$(TARGET)/crosstool.config)
 GDB_TMP = $(subst linaro-,,$(GDB_FULL))
-GDB_VERSION = $(shell echo $(GDB_TMP) | sed -e 's/-/ /g')
+GDB_VERSION = $(shell echo $(GDB_TMP) | sed -e 's/-/ /')
+
+LIBC_FULL = $(shell awk '-F"' '/^CT_LIBC_VERSION/ { print $$2 }'    \
+                   samples/linaro-$(TARGET)/crosstool.config)
+LIBC_TMP = $(subst linaro-,,$(LIBC_FULL))
+LIBC_VERSION = $(shell echo $(LIBC_TMP) | sed -e 's/-/ /')
 
 # Binary build identifier.  Default is empty. Use -01, -02, ... for respin.
-SPIN ?= 
+SPIN ?=
 # Development build identifier.  Normally +bzr1234
 REVISION =
 
@@ -105,6 +111,7 @@ $(BUILD)/README.txt:
 	echo "@set TOOLCHAIN_VERSION $(TOOLCHAIN_VERSION)" > version.texi
 	echo "@set GCC_VERSION $(GCC_VERSION)" >> version.texi
 	echo "@set GDB_VERSION $(GDB_VERSION)" >> version.texi
+	echo "@set LIBC_VERSION $(LIBC_VERSION)" >> version.texi
 	- makeinfo --plain -I$(TOP)/samples/linaro-$(TARGET)/   \
 		   $(TOP)/contrib/linaro/doc/README.texi        \
 		   > $(TOP)/contrib/linaro/doc/README.txt
@@ -161,7 +168,14 @@ $(BUILD)/check/tarballs/%:
 # Build a tarball of the runtime to overlay on the device
 go-runtime:
 	rm -rf $(FINAL)
-	$(MAKE) -f contrib/linaro/build.mk copy-runtime RUNTIME_SRC=lib RUNTIME_TUPLE=$(TRIPLET)
+	case "$(TRIPLET)" in            \
+	    aarch64*linux*)             \
+	        $(MAKE) -f contrib/linaro/build.mk copy-runtime RUNTIME_SRC=lib64          \
+	                  RUNTIME_TUPLE=$(shell $(BUILD)/$(TARGET)-$(BUILD_ARCH)/install/bin/$(TRIPLET)-gcc --print-multiarch);; \
+	    arm*linux*)                 \
+	        $(MAKE) -f contrib/linaro/build.mk copy-runtime RUNTIME_SRC=lib          \
+	                  RUNTIME_TUPLE=$(shell $(BUILD)/$(TARGET)-$(BUILD_ARCH)/install/bin/$(TRIPLET)-gcc --print-multiarch);; \
+	esac
 	for i in $(wildcard $(BUILD)/$(TARGET)-$(BUILD_ARCH)/install/*-*/lib/arm-*); do \
 		$(MAKE) -f contrib/linaro/build.mk copy-runtime RUNTIME_SRC=lib/`basename $$i` RUNTIME_TUPLE=`basename $$i`; \
 	done
@@ -171,7 +185,7 @@ go-runtime:
 copy-runtime:
 	mkdir -p $(FINAL)/{lib,usr/lib}/$(RUNTIME_TUPLE)
 	# Pull across all libraries
-	cp -af $(BUILD)/$(TARGET)-$(BUILD_ARCH)/install/*-*/$(RUNTIME_SRC)/*.so* $(FINAL)/usr/lib/$(RUNTIME_TUPLE)
+	cp -af $(BUILD)/$(TARGET)-$(BUILD_ARCH)/install/*-*/lib/*.so* $(FINAL)/usr/lib/$(RUNTIME_TUPLE)
 	# Remove all sonames with no version
 	rm -f $(FINAL)/usr/lib/$(RUNTIME_TUPLE)/*.so
 	# Move libgcc
@@ -236,6 +250,9 @@ $(dstamp)common-fixup: $(dstamp)build
 	cp -a $(INSTALL) $(FINAL)
 	# Remove host libiberty.a
 	rm $(FINAL)/lib/libiberty.a
+	# Remove tmp files
+	-rm $(FINAL)/$(TRIPLET)/libc/usr/lib/crt*.o
+	-rm $(FINAL)/$(TRIPLET)/libc/usr/lib/libc.so
 	# Remove the biarch symlinks
 	find $(FINAL) -type l -name lib64 -exec rm {} \;
 	find $(FINAL) -type l -name lib32 -exec rm {} \;
@@ -323,12 +340,6 @@ WIN32_REMOVE = \
 	CT_BINUTILS_GOLD_THREADS \
 	CT_CC_GCC_ENABLE_PLUGINS \
 	CT_BINUTILS_PLUGINS
-
-# HACK: disable GDB on aarch64 for win32
-ifneq (,$(findstring aarch64,$(TARGET)))
-WIN32_REMOVE += \
-	CT_DEBUG_gdb
-endif
 
 # Build the Linux specific configuration
 $(BUILD)/$(TARGET)-$(BUILD_ARCH)/.config: ct-ng

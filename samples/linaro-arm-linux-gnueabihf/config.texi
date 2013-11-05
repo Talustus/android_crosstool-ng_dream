@@ -6,6 +6,5 @@
 @set ABI 'hard float'
 @set MODE Thumb-2
 @set FPU VFPv3-D16 FPU
-@set LIBC_VERSION EGLIBC 2.15 
 @set MULTILIB armv4t
 @set LSB lsb

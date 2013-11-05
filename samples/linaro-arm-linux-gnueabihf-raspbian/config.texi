@@ -6,5 +6,4 @@
 @set ABI 'hard float'
 @set MODE ARM
 @set FPU VFP
-@set LIBC_VERSION EGLIBC 2.13 
 @set LSB lsb

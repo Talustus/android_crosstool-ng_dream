@@ -17,9 +17,13 @@ choice
 # Don't remove next line
 # CT_INSERT_VERSION_BELOW
 
+config LIBC_NEWLIB_LINARO_2_0_0_2013_06
+    bool
+    prompt "Linaro 2.0.0-2013.06"
+
 config LIBC_NEWLIB_V_1_21_PRE
     bool
-    prompt "1.21~20121003+git0332354 (EXPERIMENTAL)"
+    prompt "2.0~20130530 (EXPERIMENTAL)"
     depends on EXPERIMENTAL && ARCH_aarch64
 
 config LIBC_NEWLIB_V_1_19_0
@@ -59,7 +63,8 @@ config LIBC_VERSION
     prompt "use CVS tag" if LIBC_NEWLIB_CVS
 # Don't remove next line
 # CT_INSERT_VERSION_STRING_BELOW
-    default "1.21~20121003+git0332354" if LIBC_NEWLIB_V_1_21_PRE
+    default "linaro-2.0.0-2013.06" if LIBC_NEWLIB_LINARO_2_0_0_2013_06
+    default "2.0~20130530" if LIBC_NEWLIB_V_1_21_PRE
     default "1.19.0" if LIBC_NEWLIB_V_1_19_0
     default "1.18.0" if LIBC_NEWLIB_V_1_18_0
     default "1.17.0" if LIBC_NEWLIB_V_1_17_0

@@ -47,7 +47,7 @@ do_debug_gdb_parts() {
 do_debug_gdb_get() {
     local linaro_version
     local linaro_series
-    local linaro_base_url="http://launchpad.net/gdb-linaro"
+    local linaro_cycle
 
     # Account for the Linaro versioning
     linaro_version="$( echo "${CT_GDB_VERSION}"      \
@@ -56,6 +56,9 @@ do_debug_gdb_get() {
     linaro_series="$( echo "${linaro_version}"      \
                       |sed -r -e 's/-.*//;'         \
                     )"
+    linaro_cycle="$( echo "${linaro_version}"      \
+                      |sed -r -e 's/.*-20//;'      \
+                    )"
 
     do_debug_gdb_parts
 
@@ -63,7 +66,7 @@ do_debug_gdb_get() {
         CT_GetFile "gdb-${CT_GDB_VERSION}"                          \
                    {ftp,http}://ftp.gnu.org/pub/gnu/gdb             \
                    ftp://sources.redhat.com/pub/gdb/{,old-}releases \
-                   "${linaro_base_url}/${linaro_series}/${linaro_version}/+download"
+		   "http://releases.linaro.org/${linaro_cycle}/components/toolchain/gdb-linaro"
     fi
 
     if [ "${do_ncurses}" = "y" ]; then

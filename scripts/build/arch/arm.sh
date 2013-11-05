@@ -6,7 +6,13 @@ CT_DoArchTupleValues() {
 
     # The system part of the tuple:
     case "${CT_LIBC},${CT_ARCH_ARM_EABI}" in
-        *glibc,y)   CT_TARGET_SYS=gnueabi;;
+        *glibc,y) 
+            if [ "${CT_ARCH_FLOAT}" = "hard" ]; then
+                CT_TARGET_SYS=gnueabihf
+            else
+	      	CT_TARGET_SYS=gnueabi
+            fi
+          ;;
         prebuilt,y)
             if [ ${CT_ARCH_FLOAT} = "hard" ]; then
                 CT_TARGET_SYS=gnueabihf

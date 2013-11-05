@@ -80,20 +80,27 @@ The default configuration is:
 @ifset LIBC_VERSION
  * @value{LIBC_VERSION}
 @end ifset
- * A GCC 4.7 series libgcc and libstdc++
+ * A GCC 4.8 series libgcc and libstdc++
 @ifset LSB
 
 For more information on the LEB, see the Linaro Wiki at
 https://wiki.linaro.org/
 
 Precise comes with a 4.6 based runtime.  To use all of the features of
-Linaro GCC 4.7, and especially if you get runtime errors about a
-missing 'GCC_4.7.0 version', please download the runtime package from:
+Linaro GCC 4.8, and especially if you get runtime errors about a
+missing 'GCC_4.8.X version', please download the runtime package from:
 
  https://launchpad.net/linaro-toolchain-binaries/+download
 
-and extract on the target.  Future LEB images will include the 4.7
+and extract on the target.  Future LEB images will include the 4.8
 runtime by default.
+
+To use all of the features of Linaro eglibc, and especially if you get runtime
+errots about libc version, please get the sysroot from the release tarball.
+
+unzip a release tarball.
+The sysroot is gcc-linaro-../@value{TRIPLET}/libc
+
 @end ifset
 @ifset MULTILIB
 

@@ -4,9 +4,13 @@
 
 # Download binutils
 do_binutils_get() {
+    if echo ${CT_BINUTILS_VERSION} |grep -q linaro; then
+        YYMM=`echo ${CT_BINUTILS_VERSION} |cut -d- -f3 |sed -e 's,^..,,'`
+    fi
     CT_GetFile "binutils-${CT_BINUTILS_VERSION}"                                        \
                {ftp,http}://{ftp.gnu.org/gnu,ftp.kernel.org/pub/linux/devel}/binutils   \
-               ftp://gcc.gnu.org/pub/binutils/{releases,snapshots}
+               ftp://gcc.gnu.org/pub/binutils/{releases,snapshots} \
+               https://releases.linaro.org/${YYMM}/components/toolchain/binutils-linaro
 }
 
 # Extract binutils

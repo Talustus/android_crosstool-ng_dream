@@ -18,10 +18,15 @@ do_libc_get() {
 
     avr32headers_src="http://dev.doredevelopment.dk/avr32-toolchain/sources"
 
+    if echo ${CT_NEWLIB_VERSION} |grep -q linaro; then
+        YYMM=`echo ${CT_NEWLIB_VERSION} |cut -d- -f3 |sed -e 's,^..,,'`
+    fi
+
     if [ -z "${CT_LIBC_NEWLIB_CVS}" ]; then
         CT_GetFile "newlib-${CT_LIBC_VERSION}"         \
                    ftp://sources.redhat.com/pub/newlib \
-                   http://mirrors.kernel.org/sources.redhat.com/newlib
+                   http://mirrors.kernel.org/sources.redhat.com/newlib \
+                   https://releases.linaro.org/${YYMM}/components/toolchain/newlib-linaro
     else
         CT_GetCVS "newlib-$(libc_newlib_version)"                   \
                   ":pserver:anoncvs@sources.redhat.com:/cvs/src"    \
