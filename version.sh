@@ -2,4 +2,4 @@
 #
 # Mix the bzr revno into the version
 
-echo linaro-1.13.1+bzr`bzr revno`
+echo dream-2013.12.1+git-`git rev-parse --short HEAD`
