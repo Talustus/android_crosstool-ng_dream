@@ -6,7 +6,7 @@ do_zlib_get() { :; }
 do_zlib_extract() { :; }
 do_zlib() { :; }
 
-CT_ZLIB_VERSION="1.2.5"
+CT_ZLIB_VERSION="1.2.8"
 # Overide functions depending on configuration
 if [ "${CT_ZLIB_NEEDED}" = "y" ]; then
 
